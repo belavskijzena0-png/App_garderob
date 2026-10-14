@@ -13,6 +13,15 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.security.MessageDigest
+
+// Вспомогательная функция хеширования пароля (SHA-256)
+fun hashPassword(password: String): String {
+    val bytes = password.toByteArray()
+    val md = MessageDigest.getInstance("SHA-256")
+    val digest = md.digest(bytes)
+    return digest.fold("") { str, it -> str + "%02x".format(it) }
+}
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -145,19 +154,22 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
 
+            // Хешируем пароль перед сохранением
+            val hashedPassword = hashPassword(password)
+
             val newUser = UserEntity(
                 gender = gender,
                 username = username,
                 email = email.trim(),
                 login = login.trim(),
-                password = password,
+                password = hashedPassword, // <--- Сохраняем захешированный пароль
                 age = age,
                 stylePreference = stylePreference,
                 isAdmin = isTryingAdmin
             )
             dao.insertUser(newUser)
 
-            val createdUser = dao.getUserByCredentials(login, password)
+            val createdUser = dao.getUserByCredentials(login.trim(), hashedPassword)
             if (createdUser != null) {
                 userPreferences.saveUserId(createdUser.userId)
                 userPreferences.saveAdminStatus(createdUser.isAdmin)
@@ -176,7 +188,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         onResult: (Boolean, Boolean, String?) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val user = dao.getUserByCredentials(emailOrLogin.trim(), password)
+            // Хешируем введенный пароль для сравнения
+            val hashedPassword = hashPassword(password)
+            val user = dao.getUserByCredentials(emailOrLogin.trim(), hashedPassword)
 
             if (user != null) {
                 userPreferences.saveUserId(user.userId)
