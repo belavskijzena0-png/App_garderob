@@ -1,5 +1,6 @@
 package com.example.practice1
 
+import android.os.CountDownTimer
 import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -25,6 +26,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+// Вспомогательная функция маскировки email
+fun maskEmail(email: String): String {
+    val parts = email.split("@")
+    if (parts.size != 2) return email
+    val name = parts[0]
+    val domain = parts[1]
+    val visibleLength = (name.length / 2).coerceAtLeast(1)
+    val maskedName = name.take(visibleLength) + "*".repeat(name.length - visibleLength)
+    return "$maskedName@$domain"
+}
+
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
@@ -45,12 +57,44 @@ fun RegisterScreen(
     var generalError by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
-    // Переменные диалога OTP
+    // --- Переменные подтверждения кода (OTP) ---
     var showOtpDialog by remember { mutableStateOf(false) }
     var otpInput by remember { mutableStateOf("") }
     var otpError by remember { mutableStateOf<String?>(null) }
 
-    // --- Валидация на клиенте (Client-side validation) ---
+    var attemptsLeft by remember { mutableIntStateOf(5) }
+    var secondsRemaining by remember { mutableIntStateOf(60) }
+    var isTimerActive by remember { mutableStateOf(false) }
+    var timer: CountDownTimer? by remember { mutableStateOf(null) }
+
+    // Очистка всех временных данных подтверждения
+    fun resetOtpState() {
+        timer?.cancel()
+        timer = null
+        otpInput = ""
+        otpError = null
+        attemptsLeft = 5
+        secondsRemaining = 60
+        isTimerActive = false
+    }
+
+    // Функция запуска таймера 60 сек
+    fun startResendTimer() {
+        timer?.cancel()
+        secondsRemaining = 60
+        isTimerActive = true
+        timer = object : CountDownTimer(60000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                secondsRemaining = (millisUntilFinished / 1000).toInt()
+            }
+            override fun onFinish() {
+                isTimerActive = false
+                secondsRemaining = 0
+            }
+        }.start()
+    }
+
+    // --- Валидация на клиенте ---
     val usernameError = when {
         username.isBlank() -> null
         username.trim().length < 2 -> "Имя должно содержать не менее 2 символов"
@@ -100,7 +144,6 @@ fun RegisterScreen(
         else -> null
     }
 
-    // Блокировка отправки: проверяем, что абсолютно все поля заполнены и без ошибок
     val isFormValid = username.isNotBlank() && usernameError == null &&
             email.isNotBlank() && emailError == null &&
             login.isNotBlank() && loginError == null &&
@@ -142,7 +185,6 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Имя пользователя
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it; generalError = "" },
@@ -154,7 +196,6 @@ fun RegisterScreen(
                 enabled = !isLoading
             )
 
-            // Email
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it; generalError = "" },
@@ -167,7 +208,6 @@ fun RegisterScreen(
                 enabled = !isLoading
             )
 
-            // Логин
             OutlinedTextField(
                 value = login,
                 onValueChange = { login = it; generalError = "" },
@@ -179,7 +219,6 @@ fun RegisterScreen(
                 enabled = !isLoading
             )
 
-            // Пароль
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it; generalError = "" },
@@ -193,7 +232,6 @@ fun RegisterScreen(
                 enabled = !isLoading
             )
 
-            // Повторите пароль
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it; generalError = "" },
@@ -207,7 +245,6 @@ fun RegisterScreen(
                 enabled = !isLoading
             )
 
-            // Пол
             OutlinedTextField(
                 value = gender,
                 onValueChange = { gender = it; generalError = "" },
@@ -219,7 +256,6 @@ fun RegisterScreen(
                 enabled = !isLoading
             )
 
-            // Возраст
             OutlinedTextField(
                 value = age,
                 onValueChange = { age = it; generalError = "" },
@@ -232,7 +268,6 @@ fun RegisterScreen(
                 enabled = !isLoading
             )
 
-            // Предпочтение в стиле
             OutlinedTextField(
                 value = stylePreference,
                 onValueChange = { stylePreference = it; generalError = "" },
@@ -257,7 +292,6 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Кнопка регистрации
             Button(
                 onClick = {
                     isLoading = true
@@ -271,6 +305,8 @@ fun RegisterScreen(
                             authViewModel.sendSixDigitCode(email) { sent, sendError ->
                                 isLoading = false
                                 if (sent) {
+                                    resetOtpState()
+                                    startResendTimer()
                                     showOtpDialog = true
                                 } else {
                                     generalError = sendError ?: "Ошибка отправки кода"
@@ -308,32 +344,65 @@ fun RegisterScreen(
 
     if (showOtpDialog) {
         AlertDialog(
-            onDismissRequest = { showOtpDialog = false },
+            onDismissRequest = {
+                resetOtpState()
+                showOtpDialog = false
+            },
             title = { Text("Подтверждение Email") },
             text = {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Введите 6-значный код, отправленный на $email:")
+                    Text(
+                        text = "Код отправлен на: ${maskEmail(email)}",
+                        fontSize = 14.sp,
+                        color = Color(0xFF2D3142)
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
 
                     OtpInputField(
                         otpText = otpInput,
                         onOtpTextChange = {
-                            otpInput = it
-                            otpError = null
+                            if (attemptsLeft > 0) {
+                                otpInput = it
+                                otpError = null
+                            }
                         }
                     )
 
                     otpError?.let {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = it, color = Color.Red, fontSize = 12.sp)
+                        Text(text = it, color = Color.Red, fontSize = 12.sp, textAlign = TextAlign.Center)
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    TextButton(
+                        onClick = {
+                            if (!isTimerActive) {
+                                authViewModel.sendSixDigitCode(email) { sent, _ ->
+                                    if (sent) {
+                                        resetOtpState()
+                                        startResendTimer()
+                                        Toast.makeText(context, "Новый код отправлен", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isTimerActive
+                    ) {
+                        if (isTimerActive) {
+                            Text("Повторный код через $secondsRemaining сек.")
+                        } else {
+                            Text("Отправить код повторно")
+                        }
                     }
                 }
             },
             confirmButton = {
                 Button(
+                    enabled = attemptsLeft > 0 && otpInput.length == 6,
                     onClick = {
                         if (authViewModel.verifyCode(otpInput)) {
                             authViewModel.registerUser(
@@ -346,6 +415,7 @@ fun RegisterScreen(
                                 stylePreference = stylePreference,
                                 onResult = { isSuccess, error ->
                                     if (isSuccess) {
+                                        resetOtpState()
                                         showOtpDialog = false
                                         Toast.makeText(
                                             context,
@@ -359,7 +429,12 @@ fun RegisterScreen(
                                 }
                             )
                         } else {
-                            otpError = "Неверный код!"
+                            attemptsLeft -= 1
+                            if (attemptsLeft <= 0) {
+                                otpError = "Превышено 5 попыток ввода! Запросите новый код."
+                            } else {
+                                otpError = "Неверный код! Осталось попыток: $attemptsLeft"
+                            }
                         }
                     }
                 ) {
@@ -367,7 +442,12 @@ fun RegisterScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showOtpDialog = false }) {
+                TextButton(
+                    onClick = {
+                        resetOtpState()
+                        showOtpDialog = false
+                    }
+                ) {
                     Text("Отмена")
                 }
             }

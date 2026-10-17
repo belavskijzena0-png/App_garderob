@@ -52,6 +52,11 @@ android {
 }
 
 dependencies {
+    // Retrofit для работы с REST API
+    implementation("com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("org.mindrot:jbcrypt:0.4")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.sun.mail:android-mail:1.6.7")

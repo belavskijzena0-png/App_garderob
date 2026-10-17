@@ -7,11 +7,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -25,9 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.practice1.AddClothingScreen
 import com.example.practice1.ClothingEntity
 import com.example.practice1.MainViewModel
-import kotlin.collections.emptyList
 
 data class TabItem(val title: String, val symbol: String)
 
@@ -64,7 +61,21 @@ fun MainScreen(
             when (selectedTab) {
                 0 -> EmptyScreen("ГЛАВНАЯ")
                 1 -> WardrobeScreen(viewModel = viewModel)
-                2 -> AddItemScreen(viewModel = viewModel)
+
+                // Вкладка 2: Добавление вещи
+                2 -> AddClothingScreen(
+                    onSaveClick = { newClothing ->
+                        viewModel.addClothing(
+                            type = newClothing.type,
+                            color = newClothing.color,
+                            size = newClothing.size,
+                            season = newClothing.season,
+                            userPhotoUri = newClothing.imageUrl
+                        )
+                        selectedTab = 1
+                    }
+                )
+
                 3 -> EmptyScreen("АУТФИТЫ")
                 4 -> ProfileScreen(onLogoutClick = onLogoutClick)
             }
@@ -76,125 +87,14 @@ fun MainScreen(
 fun WardrobeScreen(viewModel: MainViewModel) {
     val clothes by viewModel.clothes.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("МОЙ ШКАФ", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (clothes.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("В шкафу пока пусто 👕", color = Color.Gray)
-            }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(clothes) { item ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                            .background(Color.White.copy(alpha = 0.8f))
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(text = item.type, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(
-                                text = "Размер: ${item.size} | Цвет: ${item.color} | Сезон: ${item.season}",
-                                color = Color.Gray,
-                                fontSize = 14.sp
-                            )
-                        }
-                        Text(
-                            text = "❌",
-                            modifier = Modifier.clickable { viewModel.deleteClothing(item) }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun AddItemScreen(viewModel: MainViewModel) {
-    var type by remember { mutableStateOf("") }
-    var size by remember { mutableStateOf("") }
-    var color by remember { mutableStateOf("") }
-    var season by remember { mutableStateOf("") }
-    var isSaved by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("НОВАЯ ВЕЩЬ", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = type,
-            onValueChange = { type = it; isSaved = false },
-            label = { Text("Тип (например, Худи)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = size,
-            onValueChange = { size = it; isSaved = false },
-            label = { Text("Размер (например, M)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = color,
-            onValueChange = { color = it; isSaved = false },
-            label = { Text("Цвет (например, Черный)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = season,
-            onValueChange = { season = it; isSaved = false },
-            label = { Text("Сезон (например, Зима)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                if (type.isNotBlank() && size.isNotBlank()) {
-                    viewModel.addClothing(type, size, color, season)
-                    type = ""
-                    size = ""
-                    color = ""
-                    season = ""
-                    isSaved = true
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Сохранить в базу данных")
-        }
-
-        if (isSaved) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text("✅ Сохранено в БД!", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
-        }
-    }
+    com.example.practice1.WardrobeScreen(
+        clothesList = clothes,
+        onClothingClick = { item -> },
+        onDeleteClick = { item ->
+            viewModel.deleteClothing(item)
+        },
+        onFavoriteToggle = { item -> }
+    )
 }
 
 @Composable

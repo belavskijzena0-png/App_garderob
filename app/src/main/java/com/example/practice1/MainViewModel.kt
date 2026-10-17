@@ -20,18 +20,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = emptyList()
         )
 
-    fun addClothing(type: String, size: String, color: String, season: String) {
+    fun addClothing(
+        type: String,
+        color: String,
+        size: String,
+        season: String,
+        userPhotoUri: String? = null
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             val clothing = ClothingEntity(
                 type = type,
                 size = size,
                 color = color,
-                season = season
+                season = season,
+                imageUrl = userPhotoUri ?: ""
             )
             dao.insertClothing(clothing)
         }
     }
 
+    // Вызов метода удаления из AppDao
     fun deleteClothing(clothing: ClothingEntity) {
         viewModelScope.launch(Dispatchers.IO) {
             dao.deleteClothing(clothing)

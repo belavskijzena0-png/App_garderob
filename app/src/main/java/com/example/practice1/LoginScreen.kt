@@ -20,7 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (isAdmin: Boolean) -> Unit, // Изменено: теперь передает статус админа
+    onLoginSuccess: (isAdmin: Boolean) -> Unit,
     onNavigateToRegister: () -> Unit = {},
     authViewModel: AuthViewModel = viewModel()
 ) {
@@ -102,19 +102,28 @@ fun LoginScreen(
             Button(
                 onClick = {
                     if (email.isNotBlank() && password.isNotBlank()) {
-                        isLoading = true
-                        // Вызываем loginUser с тремя параметрами callback'а (success, isAdmin, error)
-                        authViewModel.loginUser(email, password) { success, isAdmin, error ->
-                            isLoading = false
-                            if (success) {
-                                Toast.makeText(
-                                    context,
-                                    if (isAdmin) "Вход выполнен (Администратор)" else "Успешный вход!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                onLoginSuccess(isAdmin) // Передаем флог isAdmin наружу для навигации
-                            } else {
-                                errorMessage = error ?: "Неверный логин или пароль"
+                        // Прямой вход под админом без обращения к БД
+                        if (email.trim().equals("admin", ignoreCase = true) && password == "admin") {
+                            Toast.makeText(
+                                context,
+                                "Вход выполнен (Администратор)",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            onLoginSuccess(true)
+                        } else {
+                            isLoading = true
+                            authViewModel.loginUser(email, password) { success, isAdmin, error ->
+                                isLoading = false
+                                if (success) {
+                                    Toast.makeText(
+                                        context,
+                                        if (isAdmin) "Вход выполнен (Администратор)" else "Успешный вход!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    onLoginSuccess(isAdmin)
+                                } else {
+                                    errorMessage = error ?: "Неверный логин или пароль"
+                                }
                             }
                         }
                     } else {
@@ -145,7 +154,6 @@ fun LoginScreen(
             ) {
                 Text("Ещё нет аккаунта? Зарегистрироваться", color = Color(0xFF2D3142))
             }
-
         }
     }
 }
