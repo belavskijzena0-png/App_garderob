@@ -102,28 +102,19 @@ fun LoginScreen(
             Button(
                 onClick = {
                     if (email.isNotBlank() && password.isNotBlank()) {
-                        // Прямой вход под админом без обращения к БД
-                        if (email.trim().equals("admin", ignoreCase = true) && password == "admin") {
-                            Toast.makeText(
-                                context,
-                                "Вход выполнен (Администратор)",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            onLoginSuccess(true)
-                        } else {
-                            isLoading = true
-                            authViewModel.loginUser(email, password) { success, isAdmin, error ->
-                                isLoading = false
-                                if (success) {
-                                    Toast.makeText(
-                                        context,
-                                        if (isAdmin) "Вход выполнен (Администратор)" else "Успешный вход!",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    onLoginSuccess(isAdmin)
-                                } else {
-                                    errorMessage = error ?: "Неверный логин или пароль"
-                                }
+                        isLoading = true
+                        // Проверка авторизации любого пользователя (включая админа) происходит через БД
+                        authViewModel.loginUser(email, password) { success, isAdmin, error ->
+                            isLoading = false
+                            if (success) {
+                                Toast.makeText(
+                                    context,
+                                    if (isAdmin) "Вход выполнен (Администратор)" else "Успешный вход!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                onLoginSuccess(isAdmin)
+                            } else {
+                                errorMessage = error ?: "Неверный логин или пароль"
                             }
                         }
                     } else {

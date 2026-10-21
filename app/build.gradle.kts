@@ -1,9 +1,9 @@
-plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp")
-    alias(libs.plugins.google.services)
-}
+    plugins {
+        alias(libs.plugins.android.application)
+        alias(libs.plugins.kotlin.compose)
+        alias(libs.plugins.ksp)
+        alias(libs.plugins.google.services)
+    }
 
 android {
     namespace = "com.example.practice1"
@@ -63,10 +63,9 @@ dependencies {
     implementation("com.sun.mail:android-activation:1.6.7")
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
-    val roomVersion = "2.6.1"
-    implementation("androidx.room:room-runtime:$roomVersion")
-    implementation("androidx.room:room-ktx:$roomVersion")
-    ksp("androidx.room:room-compiler:$roomVersion")
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
     implementation("androidx.navigation:navigation-compose:2.8.0")
     implementation("androidx.compose.material:material-icons-extended")
     implementation(platform(libs.androidx.compose.bom))

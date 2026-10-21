@@ -25,7 +25,7 @@ interface ImageSearchApi {
     suspend fun searchClothingImage(
         @Query("query") query: String,
         @Query("client_id") clientId: String = "DEMO_KEY", // Можно использовать бесплатный ключ Unsplash
-        @Query("per_page") perPage: Int = 1
+        @Query("per_page") perPage: Int = 12
     ): UnsplashResponse
 }
 
